@@ -26,7 +26,7 @@ def get_local_ip():
 def get_video_files():
     """Obtiene la lista de archivos de video en la carpeta multimedia"""
     # Definir ruta absoluta a la carpeta multimedia
-    media_dir = '/home/signage/multimedia'
+    media_dir = '/home/Signage/multimedia'
     
     # Crear la carpeta si no existe
     if not os.path.exists(media_dir):
