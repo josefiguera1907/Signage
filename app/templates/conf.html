@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Configuración - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1>Configuración</h1>
+            <p class="lead">Ajustes de la aplicación</p>
+            
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Opciones de Configuración</h5>
+                </div>
+                <div class="card-body">
+                    <form id="configForm">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="autoStart" name="autoStart" 
+                                   {% if auto_start %}checked{% endif %}>
+                            <label class="form-check-label" for="autoStart">
+                                Autoarranque
+                                <i class="fas fa-question-circle text-muted ms-2" 
+                                   data-bs-toggle="tooltip" 
+                                   data-bs-placement="right" 
+                                   title="Habilita el autoarranque para ejecutar el entorno web de Signally de forma automática después del arranque de tu sistema.">
+                                </i>
+                            </label>
+                        </div>
+                    </form>
+                    <div id="statusMessage" class="mt-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Inicializar tooltips de Bootstrap
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Manejar cambios en el switch de autoarranque
+    const autoStartCheckbox = document.getElementById('autoStart');
+    const statusMessage = document.getElementById('statusMessage');
+
+    autoStartCheckbox.addEventListener('change', function() {
+        const isEnabled = this.checked;
+        
+        // Mostrar indicador de carga
+        statusMessage.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Cargando...</span></div> Guardando configuración...';
+        statusMessage.className = 'text-primary mt-2';
+        
+        // Enviar solicitud al servidor
+        fetch('/api/config/auto_start', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ enabled: isEnabled })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                statusMessage.innerHTML = '<i class="fas fa-check-circle"></i> Configuración guardada correctamente';
+                statusMessage.className = 'text-success mt-2';
+            } else {
+                throw new Error(data.message || 'Error al guardar la configuración');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            statusMessage.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${error.message || 'Error al guardar la configuración'}`;
+            statusMessage.className = 'text-danger mt-2';
+            // Revertir el cambio en el checkbox
+            autoStartCheckbox.checked = !isEnabled;
+        })
+        .finally(() => {
+            // Ocultar el mensaje después de 3 segundos
+            setTimeout(() => {
+                statusMessage.style.opacity = '0';
+                setTimeout(() => {
+                    statusMessage.textContent = '';
+                    statusMessage.style.opacity = '1';
+                }, 500);
+            }, 3000);
+        });
+    });
+});
+</script>
+{% endblock %}

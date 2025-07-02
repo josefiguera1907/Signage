@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Inicio - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12 text-center mb-5">
+        <h1>Bienvenido a Signally</h1>
+        <p class="lead">Sistema de Gestión de Contenidos para Señalización Digital</p>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-photo-video fa-3x mb-3 text-primary"></i>
+                <h5 class="card-title">Gestión de Contenidos</h5>
+                <p class="card-text">Administra y programa tus contenidos multimedia de manera sencilla.</p>
+                <a href="{{ url_for('main.gestion_contenido') }}" class="btn btn-outline-primary">Gestionar</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-tv fa-3x mb-3 text-success"></i>
+                <h5 class="card-title">Canales</h5>
+                <p class="card-text">Configura y gestiona tus canales de señalización.</p>
+                <a href="{{ url_for('main.gestion_canales') }}" class="btn btn-outline-primary">Gestionar</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-chart-line fa-3x mb-3 text-info"></i>
+                <h5 class="card-title">Estadísticas</h5>
+                <p class="card-text">Visualiza el rendimiento de tus contenidos.</p>
+                <a href="#" class="btn btn-outline-info">Ver</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Actividad Reciente</h5>
+            </div>
+            <div class="card-body">
+                <p>No hay actividad reciente para mostrar.</p>
+                <!-- Aquí podrías incluir una tabla o lista de actividades recientes -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Código JavaScript específico para la página de inicio
+$(document).ready(function() {
+    console.log('Página de inicio cargada');
+    // Aquí puedes agregar más lógica de JavaScript si es necesario
+});
+</script>
+{% endblock %}

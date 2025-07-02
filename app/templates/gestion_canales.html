@@ -1,0 +1,582 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión de Canales - {{ super() }}{% endblock %}
+
+{% block content %}
+<style>
+/* Estilos para los botones de acción */
+.table-actions {
+    white-space: nowrap;
+    width: 1%;
+    padding: 0.5rem !important;
+}
+
+.btn-actions {
+    width: 32px;
+    height: 32px;
+    padding: 0.375rem;
+    border: none;
+    background: none;
+    color: #6c757d;
+    border-radius: 4px;
+    transition: all 0.2s ease-in-out;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 2px;
+}
+
+.btn-actions:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: #0d6efd;
+}
+
+.btn-actions.btn-delete:hover, .btn-actions.btn-eliminar-canal:hover {
+    color: #dc3545;
+}
+
+.btn-actions.btn-transmit:hover {
+    color: #198754;
+}
+
+.btn-actions i {
+    font-size: 1rem;
+}
+
+/* Ajustes para dispositivos móviles */
+@media (max-width: 768px) {
+    .table-responsive {
+        border: none;
+    }
+    
+    .table thead {
+        display: none;
+    }
+    
+    .table, .table tbody, .table tr, .table td {
+        display: block;
+        width: 100%;
+    }
+    
+    .table tr {
+        margin-bottom: 1rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+    }
+    
+    .table td {
+        padding: 0.5rem;
+        text-align: right;
+        position: relative;
+        padding-left: 50%;
+    }
+    
+    .table td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 0.5rem;
+        width: 45%;
+        font-weight: bold;
+        text-align: left;
+    }
+    
+    .table-actions {
+        text-align: center !important;
+        padding-left: 0.5rem !important;
+    }
+    
+    .table-actions::before {
+        display: none;
+    }
+    
+    .table-actions .btn-group {
+        justify-content: flex-end;
+    }
+}
+</style>
+
+<div class="container">
+    
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>Gestión de Canales</h1>
+            <p class="lead">Crea y administra tus canales de señalización</p>
+        </div>
+    </div>
+
+    <!-- Formulario para crear/editar canal -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">{{ 'Editar' if canal_editar else 'Crear Nuevo' }} Canal</h5>
+        </div>
+        <div class="card-body">
+            <form id="canalForm" method="POST" action="{{ url_for('main.guardar_canal') }}">
+                {% if canal_editar %}
+                <input type="hidden" name="canal_id" value="{{ canal_editar.id }}">
+                {% endif %}
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="nombre" class="form-label">Nombre del Canal</label>
+                        <input type="text" class="form-control" id="nombre" name="nombre" 
+                               value="{{ canal_editar.nombre if canal_editar else '' }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="tipo_contenido" class="form-label">Tipo de Contenido</label>
+                        <select class="form-select" id="tipo_contenido" name="tipo_contenido" required>
+                            <option value="" disabled>Selecciona un tipo de contenido</option>
+                            <option value="imagen" {% if canal_editar and canal_editar.tipo_contenido == 'imagen' %}selected{% endif %}>Imágenes</option>
+                            <option value="video" {% if not canal_editar or canal_editar.tipo_contenido == 'video' %}selected{% endif %}>Videos</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="rotacion" class="form-label">Rotación (grados)</label>
+                        <select class="form-select" id="rotacion" name="rotacion" required>
+                            <option value="0" {% if canal_editar and canal_editar.rotacion == 0 %}selected{% endif %}>0°</option>
+                            <option value="90" {% if canal_editar and canal_editar.rotacion == 90 %}selected{% endif %}>90°</option>
+                            <option value="180" {% if canal_editar and canal_editar.rotacion == 180 %}selected{% endif %}>180°</option>
+                            <option value="270" {% if canal_editar and canal_editar.rotacion == 270 %}selected{% endif %}>270°</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check form-switch mt-4 pt-2">
+                            <input type="hidden" name="repeticion" value="{{ 'bucle' if (canal_editar and canal_editar.repeticion == 'bucle') or not canal_editar else 'una_vez' }}">
+                            <input class="form-check-input" type="checkbox" role="switch" 
+                                   id="repeticion" onchange="document.getElementsByName('repeticion')[0].value = this.checked ? 'bucle' : 'una_vez'"
+                                   {% if (canal_editar and canal_editar.repeticion == 'bucle') or not canal_editar %}checked{% endif %}>
+                            <label class="form-check-label" for="repeticion">Repetir contenido en bucle</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Contenido del Canal</label>
+                    <div class="border p-3 rounded" style="max-height: 300px; overflow-y: auto;">
+                        {% if archivos %}
+                            {% for archivo in archivos %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="contenidos" 
+                                           value="{{ archivo.name }}" 
+                                           id="archivo_{{ loop.index }}"
+                                           {% if canal_editar and archivo.name in canal_editar.contenidos %}checked{% endif %}>
+                                    <label class="form-check-label d-flex align-items-center" for="archivo_{{ loop.index }}">
+                                        {% if archivo.type in ['jpg', 'jpeg', 'png', 'gif'] %}
+                                            <i class="fas fa-image me-2 text-primary"></i>
+                                        {% elif archivo.type in ['mp4', 'mov', 'avi', 'mkv'] %}
+                                            <i class="fas fa-film me-2 text-danger"></i>
+                                        {% else %}
+                                            <i class="fas fa-file me-2 text-secondary"></i>
+                                        {% endif %}
+                                        {{ archivo.name }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted">No hay archivos disponibles. Sube contenido primero.</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{{ url_for('main.gestion_canales') }}" class="btn btn-secondary">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> {{ 'Actualizar' if canal_editar else 'Guardar' }} Canal
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de Canales -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Canales Existentes</h5>
+            <button id="updateM3UButton" class="btn btn-sm btn-primary" disabled>
+                <i class="fas fa-sync-alt me-1"></i> Actualizar M3U
+            </button>
+            <a href="{{ url_for('main.get_m3u_playlist') }}" class="btn btn-sm btn-outline-secondary ms-2" id="downloadM3U" download>
+                <i class="fas fa-download me-1"></i> Descargar M3U
+            </a>
+        </div>
+        <div class="card-body p-0">
+            <!-- Vista de tabla para pantallas medianas y grandes -->
+            <div class="d-none d-md-block">
+                <div class="table-responsive">
+                    <table class="table table-hover m-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Nombre</th>
+                                <th class="text-center">Tipo</th>
+                                <th class="text-center">Rotación</th>
+                                <th class="text-center">Repetición</th>
+                                <th class="text-center">Elementos</th>
+                                <th class="text-center">Estado</th>
+                                <th class="table-actions">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if canales %}
+                                {% for canal in canales %}
+                                    <tr>
+                                        <td class="align-middle">{{ canal.nombre }}</td>
+                                        <td class="text-center align-middle">
+                                            <span class="badge bg-{{ 'primary' if canal.tipo_contenido == 'imagen' else 'danger' }}">
+                                                {{ 'Imágenes' if canal.tipo_contenido == 'imagen' else 'Videos' }}
+                                            </span>
+                                        </td>
+                                        <td class="text-center align-middle">{{ canal.rotacion }}°</td>
+                                        <td class="text-center align-middle">
+                                            {% if canal.repeticion == 'bucle' %}
+                                                <i class="fas fa-redo me-1"></i> Bucle
+                                            {% elif canal.repeticion == 'una_vez' %}
+                                                <i class="fas fa-play me-1"></i> Una vez
+                                            {% else %}
+                                                <i class="fas fa-clock me-1"></i> {{ canal.repeticion|default('Horario') }}
+                                            {% endif %}
+                                            <!-- Debug: Valor de repetición: {{ canal.repeticion }} -->
+                                        </td>
+                                        <td class="text-center align-middle">
+                                            {{ canal.contenidos|length }} elementos
+                                        </td>
+                                        <td class="text-center align-middle estado-canal">
+                                            {% if canal.en_transmision %}
+                                                <span class="badge bg-success">En vivo</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Detenido</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center align-middle table-actions">
+                                            <!-- Botón Transmitir/Detener -->
+                                            <a href="{{ url_for('main.transmitir_canal', canal_id=canal.id) }}" 
+                                               class="btn-actions btn-transmit{% if canal.en_transmision %} active{% endif %}" 
+                                               data-canal-id="{{ canal.id }}"
+                                               data-canal-nombre="{{ canal.nombre }}"
+                                               title="{% if canal.en_transmision %}Detener transmisión{% else %}Iniciar transmisión{% endif %}">
+                                                <i class="fas fa-{% if canal.en_transmision %}stop{% else %}broadcast-tower{% endif %}"></i>
+                                            </a>
+                                            <!-- Botón Editar -->
+                                            <a href="{{ url_for('main.gestion_canales', canal_id=canal.id) }}" class="btn-actions" title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            
+                                            <!-- Botón Eliminar -->
+                                            <button class="btn-actions btn-delete" 
+                                                    data-canal-id="{{ canal.id }}" 
+                                                    title="Eliminar">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-4">No hay canales creados</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Vista de tarjetas para pantallas pequeñas -->
+            <div class="d-md-none">
+                {% if canales %}
+                    {% for canal in canales %}
+                        <div class="card border-0 border-bottom rounded-0">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="card-title mb-0">{{ canal.nombre }}</h6>
+                                    <span class="badge bg-{{ 'primary' if canal.tipo_contenido == 'imagen' else 'danger' }}">
+                                        {{ 'Imágenes' if canal.tipo_contenido == 'imagen' else 'Videos' }}
+                                    </span>
+                                </div>
+                                <div class="d-flex justify-content-between text-muted small mb-3">
+                                    <div>Rotación: {{ canal.rotacion }}°</div>
+                                    <div>{{ canal.contenidos|length }} elementos</div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="small">
+                                        {% if canal.repeticion == 'bucle' %}
+                                            <i class="fas fa-redo me-1"></i> Bucle
+                                        {% elif canal.repeticion == 'una_vez' %}
+                                            <i class="fas fa-play me-1"></i> Una vez
+                                        {% else %}
+                                            <i class="fas fa-clock me-1"></i> Horario
+                                        {% endif %}
+                                    </span>
+                                    <div class="btn-group">
+                                        <a href="{{ url_for('main.gestion_canales', canal_id=canal.id) }}" 
+                                           class="btn btn-sm btn-outline-primary" 
+                                           title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-danger btn-eliminar-canal" 
+                                                data-canal-id="{{ canal.id }}"
+                                                title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">No hay canales creados</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Función para verificar actualizaciones M3U
+function checkM3UUpdate() {
+    console.log('Verificando actualizaciones M3U...');
+    fetch('/api/check_m3u_update')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error HTTP: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Respuesta de check_m3u_update:', data);
+            const updateButton = document.getElementById('updateM3UButton');
+            if (updateButton) {
+                updateButton.disabled = !data.needs_update;
+                console.log(`Botón actualización M3U: ${updateButton.disabled ? 'deshabilitado' : 'habilitado'}`);
+            }
+            
+            // Actualizar el enlace de descarga para evitar caché
+            if (data.current_hash) {
+                const downloadLink = document.getElementById('downloadM3U');
+                if (downloadLink) {
+                    downloadLink.href = `/playlist.m3u?t=${Date.now()}`;
+                    console.log('Enlace de descarga actualizado');
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error al verificar actualizaciones M3U:', error);
+            // Forzar actualización del botón en caso de error
+            const updateButton = document.getElementById('updateM3UButton');
+            if (updateButton) {
+                updateButton.disabled = false;
+            }
+        });
+}
+
+// Verificar actualizaciones cada 30 segundos
+setInterval(checkM3UUpdate, 30000);
+
+// Verificar al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Página cargada, verificando estado inicial...');
+    checkM3UUpdate();
+});
+document.addEventListener('DOMContentLoaded', function() {
+    checkM3UUpdate();
+    
+    // Manejar clic en el botón de actualización
+    const updateButton = document.getElementById('updateM3UButton');
+    updateButton.addEventListener('click', function() {
+        if (this.disabled) return;
+        
+        this.disabled = true;
+        const originalText = this.innerHTML;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Actualizando...';
+        
+        fetch('/actualizar_m3u', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('success', 'Éxito', 'Lista M3U actualizada correctamente');
+                // Actualizar el enlace de descarga
+                const downloadLink = document.getElementById('downloadM3U');
+                downloadLink.href = `/playlist.m3u?t=${Date.now()}`;
+            } else {
+                showToast('error', 'Error', data.message || 'Error al actualizar la lista M3U');
+                checkM3UUpdate(); // Volver a verificar el estado
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('error', 'Error', 'Error al conectar con el servidor');
+            checkM3UUpdate(); // Volver a verificar el estado
+        })
+        .finally(() => {
+            this.innerHTML = originalText;
+        });
+    });
+});
+
+
+// Función para mostrar notificaciones toast
+function showToast(type, title, message) {
+    const toastId = 'toast-' + Date.now();
+    const toastHtml = `
+        <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0 position-fixed bottom-0 end-0 m-3" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <strong>${title}</strong><br>${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    `;
+    
+    $('body').append(toastHtml);
+    const toastElement = $(`#${toastId}`);
+    const toast = new bootstrap.Toast(toastElement[0], {
+        autohide: true,
+        delay: 5000
+    });
+    
+    toast.show();
+    
+    // Eliminar el toast del DOM después de que se oculte
+    toastElement.on('hidden.bs.toast', function () {
+        $(this).remove();
+    });
+}
+
+// Mostrar mensajes flash como notificaciones
+document.addEventListener('DOMContentLoaded', function() {
+    // Mostrar mensajes flash de Flask
+    const flashMessages = document.querySelectorAll('.alert');
+    flashMessages.forEach(alert => {
+        // Configurar para que se cierren automáticamente después de 3 segundos
+        setTimeout(() => {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        }, 3000);
+    });
+});
+
+$(document).ready(function() {
+    // Inicialización de tooltips de Bootstrap
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Manejar clic en botón de transmitir canal
+    $(document).on('click', '.btn-transmit', function(e) {
+        e.preventDefault();
+        const button = $(this);
+        const canalId = button.data('canal-id');
+        const canalNombre = button.data('canal-nombre');
+        
+        // Mostrar indicador de carga
+        const originalHtml = button.html();
+        button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+        
+        // Enviar solicitud para iniciar/detener la transmisión
+        // Redirigir directamente a la URL de transmisión
+        window.location.href = `/canales/transmitir/${canalId}`;
+    });
+    
+    // Manejar clic en botón de eliminar canal
+    $(document).on('click', '.btn-delete', function(e) {
+        e.preventDefault();
+        const button = $(this);
+        const canalId = button.data('canal-id');
+        const canalNombre = button.closest('tr').find('td:first').text().trim();
+        
+        if (confirm(`¿Estás seguro de que deseas eliminar el canal "${canalNombre}"? Esta acción no se puede deshacer.`)) {
+            // Mostrar indicador de carga
+            button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+            
+            // Enviar solicitud para eliminar el canal
+            fetch(`/canales/eliminar/${canalId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    // Si la respuesta no es exitosa, intentar parsear el JSON del error
+                    return response.json().then(err => {
+                        throw new Error(err.message || 'Error al procesar la solicitud');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Eliminar la fila con animación
+                    button.closest('tr').fadeOut(300, function() {
+                        $(this).remove();
+                        // Si no quedan más canales, mostramos un mensaje
+                        if ($('#canalesTable tbody tr').length === 0) {
+                            $('#canalesTable tbody').html('<tr><td colspan="6" class="text-center py-4">No hay canales creados</td></tr>');
+                        }
+                    });
+                    showToast('success', 'Éxito', data.message || 'El canal se ha eliminado correctamente');
+                } else {
+                    showToast('warning', 'Advertencia', data.message || 'No se pudo eliminar el canal');
+                    button.prop('disabled', false).html('<i class="fas fa-trash"></i>');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('danger', 'Advertencia', error.message || 'Error al conectar con el servidor');
+                button.prop('disabled', false).html('<i class="fas fa-trash"></i>');
+            });
+        }
+    });
+
+    // Manejar el envío del formulario
+    $('#canalForm').on('submit', function(e) {
+        var tipoContenido = $('#tipo_contenido').val();
+        if (!tipoContenido) {
+            e.preventDefault();
+            alert('Por favor, selecciona un tipo de contenido');
+            return false;
+        }
+    });
+
+    // Manejar el cambio en el tipo de contenido
+    $('#tipo_contenido').on('change', function() {
+        var tipo = $(this).val();
+        if (tipo === 'imagen') {
+            $('#contenidoImagen').show();
+            $('#contenidoVideo').hide();
+        } else if (tipo === 'video') {
+            $('#contenidoImagen').hide();
+            $('#contenidoVideo').show();
+        }
+    });
+
+    // Inicializar visibilidad según el tipo de contenido seleccionado
+    var tipoInicial = $('#tipo_contenido').val();
+    if (tipoInicial === 'imagen') {
+        $('#contenidoVideo').hide();
+    } else if (tipoInicial === 'video') {
+        $('#contenidoImagen').hide();
+    }
+
+    // Función placeholder para eliminación (sin funcionalidad)
+    $('.btn-eliminar-canal').on('click', function(e) {
+        e.preventDefault();
+        alert('La funcionalidad de eliminar está deshabilitada temporalmente.');
+    });
+});
+</script>
+{% endblock %}
