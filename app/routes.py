@@ -1977,9 +1977,9 @@ def generate_m3u():
                 canal_id = canal.get('id') or ''
                 nombre = canal.get('nombre', 'Sin nombre')
                 
-                # Construir la URL del stream con el formato correcto: /hls/ID_NOMBRE.m3u8
+                # Construir la URL del stream con el formato correcto: /hls/NOMBRE.m3u8
                 host = request.host.split(':')[0]  # Remover el puerto si existe
-                nombre_archivo = f"{canal_id}_{nombre.lower().replace(' ', '_')}.m3u8"
+                nombre_archivo = f"{nombre.lower().replace(' ', '_')}.m3u8"
                 
                 # Usar siempre HTTP para la URL del stream ya que Nginx manejará el SSL
                 stream_url = f"http://{host}/hls/{nombre_archivo}"
