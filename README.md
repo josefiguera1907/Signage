@@ -1,4 +1,4 @@
-# Signage - Sistema de Gestión de Contenido Digital
+# Signally - Sistema de Gestión de Contenido Digital
 
 Sistema de gestión de contenido digital para transmisión de video en red local.
 
@@ -15,7 +15,7 @@ Sistema de gestión de contenido digital para transmisión de video en red local
 1. **Clonar el repositorio**:
    ```bash
    git clone https://github.com/tu-usuario/signage.git
-   cd signage
+   cd signally
    ```
 
 2. **Ejecutar el instalador** (requiere sudo para dependencias del sistema):
@@ -56,7 +56,7 @@ Abre tu navegador y visita:
 ## 🗂️ Estructura del Proyecto
 
 ```
-signage/
+signally/
 ├── app/                    # Código fuente principal
 │   ├── static/             # Archivos estáticos (CSS, JS, imágenes)
 │   ├── templates/          # Plantillas HTML
