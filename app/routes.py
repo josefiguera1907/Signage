@@ -2044,7 +2044,7 @@ def check_m3u_update():
             'needs_update': True  # Por defecto, asumir que necesita actualización en caso de error
         })
 
-@main_bp.route('/dynamic_channels.m3u')
+@main_bp.route('/playlist.m3u')
 def get_m3u_playlist():
     """Sirve la lista M3U actual"""
     m3u_content = generate_m3u()
